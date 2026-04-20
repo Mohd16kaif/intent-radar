@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Intent Radar</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: monospace; background: #0f0f0f; color: #e0e0e0; font-size: 15px; }
+        h1 { padding: 18px 24px; border-bottom: 1px solid #222; font-size: 18px; color: #fff; display: flex; justify-content: space-between; align-items: center; }
+        .stats { display: flex; gap: 1px; background: #222; border-bottom: 1px solid #222; }
+        .stat { flex: 1; background: #111; padding: 16px 20px; }
+        .stat-label { font-size: 12px; color: #555; margin-bottom: 6px; }
+        .stat-num { font-size: 32px; font-weight: bold; }
+        .stat-num.r { color: #ff4d4d; } .stat-num.o { color: #ff9944; } .stat-num.y { color: #ffcc44; } .stat-num.g { color: #44cc88; }
+        .filters { padding: 12px 24px; display: flex; gap: 10px; border-bottom: 1px solid #1a1a1a; }
+        .fb { padding: 6px 16px; border: 1px solid #333; background: transparent; color: #888; cursor: pointer; font-size: 13px; font-family: monospace; }
+        .fb.on { border-color: #ff4d4d; color: #ff4d4d; background: rgba(255,77,77,0.07); }
+        .feed { padding: 16px 24px; display: flex; flex-direction: column; gap: 10px; max-width: 960px; }
+        .card { border: 1px solid #1e1e1e; background: #111; }
+        .card-top { display: flex; gap: 14px; padding: 16px; cursor: pointer; align-items: flex-start; }
+        .card-top:hover { background: #161616; }
+        .badge { min-width: 58px; height: 58px; display: flex; flex-direction: column; align-items: center; justify-content: center; flex-shrink: 0; border: 1px solid; }
+        .badge.vh { border-color: #ff4d4d44; color: #ff4d4d; background: #ff4d4d11; }
+        .badge.hi { border-color: #ff994444; color: #ff9944; background: #ff994411; }
+        .badge.md { border-color: #ffcc4444; color: #ffcc44; background: #ffcc4411; }
+        .badge.lo { border-color: #33333388; color: #555; background: transparent; }
+        .badge-num { font-size: 22px; font-weight: bold; line-height: 1; }
+        .badge-lvl { font-size: 9px; margin-top: 3px; opacity: 0.8; }
+        .card-info { flex: 1; min-width: 0; }
+        .card-title { font-size: 16px; color: #eee; margin-bottom: 7px; line-height: 1.4; font-weight: bold; }
+        .card-meta { font-size: 13px; color: #555; display: flex; flex-wrap: wrap; gap: 10px; }
+        .card-sub { color: #4a9eff; }
+        .card-emo { color: #a06fdd; font-style: italic; }
+        .tags { display: flex; gap: 5px; margin-top: 7px; flex-wrap: wrap; }
+        .tag { font-size: 11px; padding: 2px 8px; border: 1px solid #2a2a2a; color: #555; }
+        .card-btns { display: flex; flex-direction: column; gap: 6px; flex-shrink: 0; }
+        .cbtn { padding: 6px 14px; border: 1px solid #2a2a2a; background: transparent; color: #666; cursor: pointer; font-size: 12px; font-family: monospace; white-space: nowrap; }
+        .cbtn:hover { color: #ccc; border-color: #444; }
+        .cbtn.open { color: #4a9eff; border-color: #4a9eff44; }
+        .cbtn.done { color: #44cc88; border-color: #44cc8844; }
+        .body { display: none; padding: 0 16px 16px; border-top: 1px solid #1a1a1a; }
+        .body.open { display: block; }
+        .post-body { font-size: 14px; color: #777; background: #0a0a0a; border: 1px solid #1a1a1a; padding: 12px; margin: 12px 0; max-height: 200px; overflow-y: auto; line-height: 1.7; white-space: pre-wrap; }
+        .sec-label { font-size: 11px; color: #444; text-transform: uppercase; letter-spacing: 0.5px; margin: 12px 0 8px; }
+        .reply-opts { display: flex; flex-direction: column; gap: 8px; margin-bottom: 10px; }
+        .ropt { padding: 12px; border: 1px solid #1e1e1e; background: #0d0d0d; cursor: pointer; }
+        .ropt:hover { border-color: #2a2a2a; }
+        .ropt.sel { border-color: #44cc8844; background: #44cc8808; }
+        .rtone { font-size: 11px; color: #44cc88; margin-bottom: 5px; text-transform: uppercase; letter-spacing: 0.5px; }
+        .rtext { font-size: 14px; color: #ccc; line-height: 1.6; }
+        textarea { width: 100%; min-height: 80px; padding: 10px 12px; border: 1px solid #2a2a2a; background: #080808; color: #ddd; font-size: 14px; font-family: monospace; resize: vertical; line-height: 1.6; }
+        textarea:focus { outline: none; border-color: #333; }
+        .row { display: flex; gap: 8px; margin-top: 8px; align-items: center; }
+        .hint { font-size: 12px; color: #333; flex: 1; }
+        .btn { padding: 6px 14px; border: 1px solid #2a2a2a; background: transparent; color: #888; cursor: pointer; font-size: 13px; font-family: monospace; }
+        .btn:hover { color: #ccc; border-color: #444; }
+        .btn.primary { border-color: #ff4d4d66; color: #ff4d4d; }
+        .btn.primary:hover { background: #ff4d4d11; }
+        .loading { color: #555; font-size: 13px; padding: 14px 0; }
+        .empty { text-align: center; padding: 60px; color: #333; font-size: 15px; }
+        .toast { position: fixed; bottom: 20px; right: 20px; background: #1a1a1a; border: 1px solid #333; padding: 10px 16px; font-size: 13px; opacity: 0; transition: opacity 0.2s; pointer-events: none; }
+        .toast.show { opacity: 1; }
+        .refresh-btn { padding: 6px 14px; border: 1px solid #2a2a2a; background: transparent; color: #888; cursor: pointer; font-size: 13px; font-family: monospace; }
+        .refresh-btn:hover { color: #ccc; }
+        .today-count { font-size: 12px; color: #555; padding: 8px 24px; border-bottom: 1px solid #1a1a1a; }
+        .today-count span { color: #44cc88; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+<h1>
+    <span>⬡ INTENT RADAR</span>
+    <button class="refresh-btn" onclick="manualRefresh()" id="rbtn">↻ refresh</button>
+</h1>
+
+<div class="stats">
+    <div class="stat"><div class="stat-label">very high (80+)</div><div class="stat-num r" id="s-vh">—</div></div>
+    <div class="stat"><div class="stat-label">high (60+)</div><div class="stat-num o" id="s-hi">—</div></div>
+    <div class="stat"><div class="stat-label">medium (35+)</div><div class="stat-num y" id="s-md">—</div></div>
+    <div class="stat"><div class="stat-label">total</div><div class="stat-num g" id="s-total">—</div></div>
+</div>
+
+<div class="today-count">replied today: <span id="replied-count">0</span></div>
+
+<div class="filters">
+    <button class="fb on" id="f-ALL" onclick="setFilter('ALL')">all</button>
+    <button class="fb" id="f-VH" onclick="setFilter('VH')">🔥 very high (80+)</button>
+    <button class="fb" id="f-HIGH" onclick="setFilter('HIGH')">high (60+)</button>
+    <button class="fb" id="f-MEDIUM" onclick="setFilter('MEDIUM')">medium (35+)</button>
+</div>
+
+<div class="feed" id="feed"><div class="empty">loading...</div></div>
+<div class="toast" id="toast"></div>
+
+<script>
+    let posts = [];
+    let currentFilter = 'ALL';
+    let repliedCount = parseInt(localStorage.getItem('repliedToday') || '0');
+    let repliedDate = localStorage.getItem('repliedDate') || '';
+
+    // Reset count if it's a new day
+    const today = new Date().toDateString();
+    if (repliedDate !== today) {
+      repliedCount = 0;
+      localStorage.setItem('repliedDate', today);
+      localStorage.setItem('repliedToday', '0');
+    }
+    document.getElementById('replied-count').textContent = repliedCount;
+
+    const bc = s => s >= 80 ? 'vh' : s >= 60 ? 'hi' : s >= 35 ? 'md' : 'lo';
+    const ago = t => {
+      const m = Math.floor((Date.now()/1000 - t)/60);
+      if (m < 60) return m + 'm ago';
+      return Math.floor(m/60) + 'h ago';
+    };
+    const esc  = s => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    const escA = s => String(s||'').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+
+    async function load() {
+      try {
+        const [pr, sr] = await Promise.all([fetch('/api/posts'), fetch('/api/stats')]);
+        posts = await pr.json();
+        const s = await sr.json();
+        document.getElementById('s-vh').textContent    = s.veryHigh;
+        document.getElementById('s-hi').textContent    = s.high;
+        document.getElementById('s-md').textContent    = s.medium;
+        document.getElementById('s-total').textContent = s.total;
+        render();
+      } catch(e) {
+        document.getElementById('feed').innerHTML = '<div class="empty">backend not reachable</div>';
+      }
+    }
+
+    function setFilter(f) {
+      currentFilter = f;
+      // remove 'on' from all filter buttons
+      document.querySelectorAll('.fb').forEach(b => b.classList.remove('on'));
+      // add 'on' only to the clicked one
+      document.getElementById('f-' + f).classList.add('on');
+      render();
+    }
+
+    function render() {
+      let list = [...posts];
+
+      if (currentFilter === 'VH')     list = list.filter(p => p.intentScore >= 80);
+      else if (currentFilter === 'HIGH')   list = list.filter(p => p.intentScore >= 60 && p.intentScore < 80);
+      else if (currentFilter === 'MEDIUM') list = list.filter(p => p.intentScore >= 35 && p.intentScore < 60);
+      // ALL shows everything
+
+      const feed = document.getElementById('feed');
+      if (!list.length) {
+        feed.innerHTML = '<div class="empty">no posts in this filter</div>';
+        return;
+      }
+      feed.innerHTML = list.map(card).join('');
+    }
+
+    function card(p) {
+      const tags = (p.tags||[]).map(t => `<span class="tag">${t}</span>`).join('');
+      const preview = p.selftext ? p.selftext.substring(0, 600) : '';
+      return `<div class="card" id="c-${p.id}">
+        <div class="card-top" onclick="toggle('${p.id}')">
+          <div class="badge ${bc(p.intentScore)}">
+            <div class="badge-num">${p.intentScore}</div>
+            <div class="badge-lvl">${p.intentLevel}</div>
+          </div>
+          <div class="card-info">
+            <div class="card-title">${esc(p.title)}</div>
+            <div class="card-meta">
+              <span class="card-sub">r/${p.subreddit}</span>
+              <span>${ago(p.createdUtc)}</span>
+              <span>u/${p.author}</span>
+              ${p.detectedEmotions ? `<span class="card-emo">${p.detectedEmotions}</span>` : ''}
+            </div>
+            <div class="tags">${tags}</div>
+          </div>
+          <div class="card-btns">
+            <button class="cbtn open" onclick="openR(event,'${escA(p.url)}')">open reddit ↗</button>
+            <button class="cbtn done" onclick="handleDismiss(event,'${p.id}')">✓ handled</button>
+          </div>
+        </div>
+        <div class="body" id="b-${p.id}">
+          ${preview ? `<div class="post-body">${esc(preview)}</div>` : '<div style="color:#333;font-size:12px;padding:8px 0">no body text — title only post</div>'}
+          <div class="sec-label">ai reply options</div>
+          <div id="r-${p.id}">
+            <button class="btn primary" onclick="genReplies('${p.id}')">✦ generate replies</button>
+          </div>
+          <div style="margin-top:12px">
+            <div class="sec-label">your reply — edit then copy to reddit</div>
+            <textarea id="ed-${p.id}" placeholder="select a reply above or write your own...">${esc(p.savedReply||'')}</textarea>
+            <div class="row">
+              <span class="hint">⚠ no links · no app mention · be human</span>
+              <button class="btn" onclick="copyReply('${p.id}')">copy</button>
+              <button class="btn" onclick="saveDraft('${p.id}')">save draft</button>
+            </div>
+          </div>
+        </div>
+      </div>`;
+    }
+
+    function toggle(id) {
+      document.getElementById('b-'+id).classList.toggle('open');
+    }
+
+    async function genReplies(id) {
+      const c = document.getElementById('r-'+id);
+      c.innerHTML = '<div class="loading">generating replies...</div>';
+      try {
+        const res = await fetch('/api/posts/'+id+'/replies', {method:'POST'});
+        const replies = await res.json();
+        c.innerHTML = `<div class="reply-opts" id="opts-${id}">
+          ${replies.map((r,i) => `
+            <div class="ropt" onclick="pick('${id}',${i},this)" data-r="${escA(r.reply)}">
+              <div class="rtone">${r.tone}</div>
+              <div class="rtext">${esc(r.reply)}</div>
+            </div>`).join('')}
+        </div>
+        <button class="btn" style="margin-bottom:10px" onclick="genReplies('${id}')">↻ regenerate</button>`;
+      } catch(e) {
+        c.innerHTML = '<div class="loading">failed to generate — check OpenAI key</div>';
+      }
+    }
+
+    function pick(postId, idx, el) {
+      document.querySelectorAll(`#opts-${postId} .ropt`).forEach(o => o.classList.remove('sel'));
+      el.classList.add('sel');
+      document.getElementById('ed-'+postId).value = el.dataset.r;
+    }
+
+    function copyReply(id) {
+      const t = document.getElementById('ed-'+id).value;
+      if (!t.trim()) { toast('nothing to copy'); return; }
+      navigator.clipboard.writeText(t).then(() => toast('copied — paste it on reddit'));
+    }
+
+    async function saveDraft(id) {
+      const t = document.getElementById('ed-'+id).value;
+      await fetch('/api/posts/'+id+'/reply', {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({reply:t})
+      });
+      toast('draft saved');
+    }
+
+    async function handleDismiss(e, id) {
+      e.stopPropagation();
+      await fetch('/api/posts/'+id+'/dismiss', {method:'POST'});
+      // increment today's reply count
+      repliedCount++;
+      localStorage.setItem('repliedToday', repliedCount);
+      localStorage.setItem('repliedDate', today);
+      document.getElementById('replied-count').textContent = repliedCount;
+      const el = document.getElementById('c-'+id);
+      el.style.opacity = '0';
+      el.style.transition = 'opacity 0.2s';
+      setTimeout(() => { el.remove(); posts = posts.filter(p => p.id !== id); }, 200);
+      toast('marked as handled');
+    }
+
+    function openR(e, url) {
+      e.stopPropagation();
+      window.open(url, '_blank');
+    }
+
+    async function manualRefresh() {
+      const btn = document.getElementById('rbtn');
+      btn.textContent = 'refreshing...';
+      btn.disabled = true;
+      await fetch('/api/refresh', {method:'POST'});
+      await load();
+      btn.textContent = '↻ refresh';
+      btn.disabled = false;
+      toast('feed refreshed');
+    }
+
+    function toast(msg) {
+      const t = document.getElementById('toast');
+      t.textContent = msg;
+      t.classList.add('show');
+      setTimeout(() => t.classList.remove('show'), 2500);
+    }
+
+    load();
+    setInterval(load, 5 * 60 * 1000);
+</script>
+</body>
+</html>
