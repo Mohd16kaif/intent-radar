@@ -14,7 +14,7 @@ public class RedditPost {
     private int score;
     private int numComments;
     private String url;
-
+    private String handledBy;
     private int intentScore;
     private String intentLevel;
     private String detectedEmotions;

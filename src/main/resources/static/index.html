@@ -11,12 +11,22 @@
         .stat { flex: 1; background: #111; padding: 16px 20px; }
         .stat-label { font-size: 12px; color: #555; margin-bottom: 6px; }
         .stat-num { font-size: 32px; font-weight: bold; }
-        .stat-num.r { color: #ff4d4d; } .stat-num.o { color: #ff9944; } .stat-num.y { color: #ffcc44; } .stat-num.g { color: #44cc88; }
+        .stat-num.r { color: #ff4d4d; } .stat-num.o { color: #ff9944; }
+        .stat-num.y { color: #ffcc44; } .stat-num.g { color: #44cc88; }
+        .stat-num.kaif { color: #4a9eff; } .stat-num.abdul { color: #a06fdd; }
+        .nav { display: flex; gap: 1px; background: #222; border-bottom: 1px solid #222; }
+        .nav-btn { padding: 10px 20px; background: #111; color: #555; cursor: pointer; font-size: 13px; font-family: monospace; border: none; border-bottom: 2px solid transparent; }
+        .nav-btn:hover { color: #aaa; }
+        .nav-btn.on { color: #fff; border-bottom-color: #ff4d4d; }
+        .page { display: none; }
+        .page.on { display: block; }
         .filters { padding: 12px 24px; display: flex; gap: 10px; border-bottom: 1px solid #1a1a1a; }
         .fb { padding: 6px 16px; border: 1px solid #333; background: transparent; color: #888; cursor: pointer; font-size: 13px; font-family: monospace; }
         .fb.on { border-color: #ff4d4d; color: #ff4d4d; background: rgba(255,77,77,0.07); }
         .feed { padding: 16px 24px; display: flex; flex-direction: column; gap: 10px; max-width: 960px; }
         .card { border: 1px solid #1e1e1e; background: #111; }
+        .card.handled-kaif { border-color: #4a9eff33; opacity: 0.6; }
+        .card.handled-abdul { border-color: #a06fdd33; opacity: 0.6; }
         .card-top { display: flex; gap: 14px; padding: 16px; cursor: pointer; align-items: flex-start; }
         .card-top:hover { background: #161616; }
         .badge { min-width: 58px; height: 58px; display: flex; flex-direction: column; align-items: center; justify-content: center; flex-shrink: 0; border: 1px solid; }
@@ -31,13 +41,19 @@
         .card-meta { font-size: 13px; color: #555; display: flex; flex-wrap: wrap; gap: 10px; }
         .card-sub { color: #4a9eff; }
         .card-emo { color: #a06fdd; font-style: italic; }
+        .handled-badge { font-size: 11px; padding: 2px 8px; font-weight: bold; }
+        .handled-badge.kaif { color: #4a9eff; border: 1px solid #4a9eff44; }
+        .handled-badge.abdul { color: #a06fdd; border: 1px solid #a06fdd44; }
         .tags { display: flex; gap: 5px; margin-top: 7px; flex-wrap: wrap; }
         .tag { font-size: 11px; padding: 2px 8px; border: 1px solid #2a2a2a; color: #555; }
         .card-btns { display: flex; flex-direction: column; gap: 6px; flex-shrink: 0; }
         .cbtn { padding: 6px 14px; border: 1px solid #2a2a2a; background: transparent; color: #666; cursor: pointer; font-size: 12px; font-family: monospace; white-space: nowrap; }
         .cbtn:hover { color: #ccc; border-color: #444; }
         .cbtn.open { color: #4a9eff; border-color: #4a9eff44; }
-        .cbtn.done { color: #44cc88; border-color: #44cc8844; }
+        .cbtn.kaif { color: #4a9eff; border-color: #4a9eff44; }
+        .cbtn.kaif:hover { background: #4a9eff11; }
+        .cbtn.abdul { color: #a06fdd; border-color: #a06fdd44; }
+        .cbtn.abdul:hover { background: #a06fdd11; }
         .body { display: none; padding: 0 16px 16px; border-top: 1px solid #1a1a1a; }
         .body.open { display: block; }
         .post-body { font-size: 14px; color: #777; background: #0a0a0a; border: 1px solid #1a1a1a; padding: 12px; margin: 12px 0; max-height: 200px; overflow-y: auto; line-height: 1.7; white-space: pre-wrap; }
@@ -56,14 +72,36 @@
         .btn:hover { color: #ccc; border-color: #444; }
         .btn.primary { border-color: #ff4d4d66; color: #ff4d4d; }
         .btn.primary:hover { background: #ff4d4d11; }
+        .btn.danger { border-color: #ff4d4d44; color: #ff4d4d66; font-size: 11px; padding: 3px 8px; }
+        .btn.danger:hover { color: #ff4d4d; border-color: #ff4d4d; }
         .loading { color: #555; font-size: 13px; padding: 14px 0; }
         .empty { text-align: center; padding: 60px; color: #333; font-size: 15px; }
         .toast { position: fixed; bottom: 20px; right: 20px; background: #1a1a1a; border: 1px solid #333; padding: 10px 16px; font-size: 13px; opacity: 0; transition: opacity 0.2s; pointer-events: none; }
         .toast.show { opacity: 1; }
         .refresh-btn { padding: 6px 14px; border: 1px solid #2a2a2a; background: transparent; color: #888; cursor: pointer; font-size: 13px; font-family: monospace; }
         .refresh-btn:hover { color: #ccc; }
-        .today-count { font-size: 12px; color: #555; padding: 8px 24px; border-bottom: 1px solid #1a1a1a; }
-        .today-count span { color: #44cc88; font-weight: bold; }
+        /* Subreddit stats */
+        .sub-table { padding: 24px; max-width: 800px; }
+        .sub-table table { width: 100%; border-collapse: collapse; }
+        .sub-table th { font-size: 11px; color: #444; text-transform: uppercase; letter-spacing: 0.5px; padding: 8px 12px; border-bottom: 1px solid #1a1a1a; text-align: left; }
+        .sub-table td { padding: 10px 12px; border-bottom: 1px solid #111; font-size: 14px; }
+        .sub-table tr:hover td { background: #161616; }
+        .sub-name { color: #4a9eff; }
+        .bar-wrap { width: 120px; background: #1a1a1a; height: 6px; border-radius: 3px; display: inline-block; vertical-align: middle; }
+        .bar-fill { height: 6px; border-radius: 3px; background: #ff4d4d; }
+        /* Templates */
+        .tmpl-page { padding: 24px; max-width: 800px; }
+        .tmpl-add { background: #111; border: 1px solid #1e1e1e; padding: 16px; margin-bottom: 20px; }
+        .tmpl-add input { width: 100%; padding: 8px 10px; border: 1px solid #2a2a2a; background: #080808; color: #ddd; font-size: 13px; font-family: monospace; margin-bottom: 8px; }
+        .tmpl-add input:focus { outline: none; border-color: #333; }
+        .tmpl-add-row { display: flex; gap: 8px; align-items: center; margin-top: 8px; }
+        .tmpl-add-row select { padding: 6px 10px; border: 1px solid #2a2a2a; background: #080808; color: #ddd; font-size: 13px; font-family: monospace; }
+        .tmpl-list { display: flex; flex-direction: column; gap: 8px; }
+        .tmpl-card { background: #111; border: 1px solid #1e1e1e; padding: 14px; }
+        .tmpl-label { font-size: 12px; color: #44cc88; margin-bottom: 6px; display: flex; justify-content: space-between; align-items: center; }
+        .tmpl-text { font-size: 13px; color: #aaa; line-height: 1.6; }
+        .tmpl-meta { font-size: 11px; color: #333; margin-top: 6px; }
+        .tmpl-actions { display: flex; gap: 6px; margin-top: 8px; }
     </style>
 </head>
 <body>
@@ -78,34 +116,58 @@
     <div class="stat"><div class="stat-label">high (60+)</div><div class="stat-num o" id="s-hi">—</div></div>
     <div class="stat"><div class="stat-label">medium (35+)</div><div class="stat-num y" id="s-md">—</div></div>
     <div class="stat"><div class="stat-label">total</div><div class="stat-num g" id="s-total">—</div></div>
+    <div class="stat"><div class="stat-label">kaif replied</div><div class="stat-num kaif" id="s-kaif">0</div></div>
+    <div class="stat"><div class="stat-label">abdul replied</div><div class="stat-num abdul" id="s-abdul">0</div></div>
 </div>
 
-<div class="today-count">replied today: <span id="replied-count">0</span></div>
-
-<div class="filters">
-    <button class="fb on" id="f-ALL" onclick="setFilter('ALL')">all</button>
-    <button class="fb" id="f-VH" onclick="setFilter('VH')">🔥 very high (80+)</button>
-    <button class="fb" id="f-HIGH" onclick="setFilter('HIGH')">high (60+)</button>
-    <button class="fb" id="f-MEDIUM" onclick="setFilter('MEDIUM')">medium (35+)</button>
+<div class="nav">
+    <button class="nav-btn on" id="nav-feed" onclick="showPage('feed')">feed</button>
+    <button class="nav-btn" id="nav-subreddits" onclick="showPage('subreddits')">subreddit stats</button>
+    <button class="nav-btn" id="nav-templates" onclick="showPage('templates')">reply templates</button>
 </div>
 
-<div class="feed" id="feed"><div class="empty">loading...</div></div>
+<!-- FEED PAGE -->
+<div class="page on" id="page-feed">
+    <div class="filters">
+        <button class="fb on" id="f-ALL" onclick="setFilter('ALL')">all</button>
+        <button class="fb" id="f-VH" onclick="setFilter('VH')">🔥 very high (80+)</button>
+        <button class="fb" id="f-HIGH" onclick="setFilter('HIGH')">high (60+)</button>
+        <button class="fb" id="f-MEDIUM" onclick="setFilter('MEDIUM')">medium (35+)</button>
+    </div>
+    <div class="feed" id="feed"><div class="empty">loading...</div></div>
+</div>
+
+<!-- SUBREDDIT STATS PAGE -->
+<div class="page" id="page-subreddits">
+    <div class="sub-table">
+        <div id="sub-content"><div class="empty">loading...</div></div>
+    </div>
+</div>
+
+<!-- TEMPLATES PAGE -->
+<div class="page" id="page-templates">
+    <div class="tmpl-page">
+        <div class="tmpl-add">
+            <div class="sec-label" style="margin-top:0">save a new template</div>
+            <input type="text" id="tmpl-label" placeholder="label — e.g. relapse empathy, PIED support, late night...">
+            <textarea id="tmpl-text" style="margin-top:8px" placeholder="paste your best reply here..."></textarea>
+            <div class="tmpl-add-row">
+                <select id="tmpl-savedby">
+                    <option value="kaif">kaif</option>
+                    <option value="abdul">abdul</option>
+                </select>
+                <button class="btn primary" onclick="saveTemplate()">save template</button>
+            </div>
+        </div>
+        <div class="tmpl-list" id="tmpl-list"><div class="empty">no templates yet</div></div>
+    </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script>
     let posts = [];
     let currentFilter = 'ALL';
-    let repliedCount = parseInt(localStorage.getItem('repliedToday') || '0');
-    let repliedDate = localStorage.getItem('repliedDate') || '';
-
-    // Reset count if it's a new day
-    const today = new Date().toDateString();
-    if (repliedDate !== today) {
-      repliedCount = 0;
-      localStorage.setItem('repliedDate', today);
-      localStorage.setItem('repliedToday', '0');
-    }
-    document.getElementById('replied-count').textContent = repliedCount;
 
     const bc = s => s >= 80 ? 'vh' : s >= 60 ? 'hi' : s >= 35 ? 'md' : 'lo';
     const ago = t => {
@@ -116,6 +178,19 @@
     const esc  = s => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
     const escA = s => String(s||'').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
 
+    // ── Navigation ────────────────────────────────────────────────────────────────
+
+    function showPage(name) {
+      document.querySelectorAll('.page').forEach(p => p.classList.remove('on'));
+      document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('on'));
+      document.getElementById('page-' + name).classList.add('on');
+      document.getElementById('nav-' + name).classList.add('on');
+      if (name === 'subreddits') loadSubredditStats();
+      if (name === 'templates')  loadTemplates();
+    }
+
+    // ── Load main data ─────────────────────────────────────────────────────────────
+
     async function load() {
       try {
         const [pr, sr] = await Promise.all([fetch('/api/posts'), fetch('/api/stats')]);
@@ -125,41 +200,46 @@
         document.getElementById('s-hi').textContent    = s.high;
         document.getElementById('s-md').textContent    = s.medium;
         document.getElementById('s-total').textContent = s.total;
+        document.getElementById('s-kaif').textContent  = s.count_kaif  || 0;
+        document.getElementById('s-abdul').textContent = s.count_abdul || 0;
         render();
       } catch(e) {
         document.getElementById('feed').innerHTML = '<div class="empty">backend not reachable</div>';
       }
     }
 
+    // ── Feed ──────────────────────────────────────────────────────────────────────
+
     function setFilter(f) {
       currentFilter = f;
-      // remove 'on' from all filter buttons
       document.querySelectorAll('.fb').forEach(b => b.classList.remove('on'));
-      // add 'on' only to the clicked one
       document.getElementById('f-' + f).classList.add('on');
       render();
     }
 
     function render() {
       let list = [...posts];
-
-      if (currentFilter === 'VH')     list = list.filter(p => p.intentScore >= 80);
+      if (currentFilter === 'VH')          list = list.filter(p => p.intentScore >= 80);
       else if (currentFilter === 'HIGH')   list = list.filter(p => p.intentScore >= 60 && p.intentScore < 80);
       else if (currentFilter === 'MEDIUM') list = list.filter(p => p.intentScore >= 35 && p.intentScore < 60);
-      // ALL shows everything
-
       const feed = document.getElementById('feed');
-      if (!list.length) {
-        feed.innerHTML = '<div class="empty">no posts in this filter</div>';
-        return;
-      }
+      if (!list.length) { feed.innerHTML = '<div class="empty">no posts in this filter</div>'; return; }
       feed.innerHTML = list.map(card).join('');
     }
 
     function card(p) {
       const tags = (p.tags||[]).map(t => `<span class="tag">${t}</span>`).join('');
       const preview = p.selftext ? p.selftext.substring(0, 600) : '';
-      return `<div class="card" id="c-${p.id}">
+      const handledBadge = p.handledBy
+        ? `<span class="handled-badge ${p.handledBy}">✓ handled by ${p.handledBy}</span>`
+        : '';
+      const actionBtns = p.handledBy
+        ? `<div style="font-size:11px;color:#444;text-align:right">already handled</div>`
+        : `<button class="cbtn open" onclick="openR(event,'${escA(p.url)}')">open reddit ↗</button>
+           <button class="cbtn kaif" onclick="handleDismiss(event,'${p.id}','kaif')">✓ kaif</button>
+           <button class="cbtn abdul" onclick="handleDismiss(event,'${p.id}','abdul')">✓ abdul</button>`;
+
+      return `<div class="card ${p.handledBy ? 'handled-'+p.handledBy : ''}" id="c-${p.id}">
         <div class="card-top" onclick="toggle('${p.id}')">
           <div class="badge ${bc(p.intentScore)}">
             <div class="badge-num">${p.intentScore}</div>
@@ -172,16 +252,14 @@
               <span>${ago(p.createdUtc)}</span>
               <span>u/${p.author}</span>
               ${p.detectedEmotions ? `<span class="card-emo">${p.detectedEmotions}</span>` : ''}
+              ${handledBadge}
             </div>
             <div class="tags">${tags}</div>
           </div>
-          <div class="card-btns">
-            <button class="cbtn open" onclick="openR(event,'${escA(p.url)}')">open reddit ↗</button>
-            <button class="cbtn done" onclick="handleDismiss(event,'${p.id}')">✓ handled</button>
-          </div>
+          <div class="card-btns">${actionBtns}</div>
         </div>
         <div class="body" id="b-${p.id}">
-          ${preview ? `<div class="post-body">${esc(preview)}</div>` : '<div style="color:#333;font-size:12px;padding:8px 0">no body text — title only post</div>'}
+          ${preview ? `<div class="post-body">${esc(preview)}</div>` : '<div style="color:#333;font-size:12px;padding:8px 0">no body text</div>'}
           <div class="sec-label">ai reply options</div>
           <div id="r-${p.id}">
             <button class="btn primary" onclick="genReplies('${p.id}')">✦ generate replies</button>
@@ -193,15 +271,14 @@
               <span class="hint">⚠ no links · no app mention · be human</span>
               <button class="btn" onclick="copyReply('${p.id}')">copy</button>
               <button class="btn" onclick="saveDraft('${p.id}')">save draft</button>
+              <button class="btn" onclick="saveAsTemplate('${p.id}')">save as template</button>
             </div>
           </div>
         </div>
       </div>`;
     }
 
-    function toggle(id) {
-      document.getElementById('b-'+id).classList.toggle('open');
-    }
+    function toggle(id) { document.getElementById('b-'+id).classList.toggle('open'); }
 
     async function genReplies(id) {
       const c = document.getElementById('r-'+id);
@@ -218,7 +295,7 @@
         </div>
         <button class="btn" style="margin-bottom:10px" onclick="genReplies('${id}')">↻ regenerate</button>`;
       } catch(e) {
-        c.innerHTML = '<div class="loading">failed to generate — check OpenAI key</div>';
+        c.innerHTML = '<div class="loading">failed to generate replies</div>';
       }
     }
 
@@ -237,48 +314,132 @@
     async function saveDraft(id) {
       const t = document.getElementById('ed-'+id).value;
       await fetch('/api/posts/'+id+'/reply', {
-        method:'POST',
-        headers:{'Content-Type':'application/json'},
+        method:'POST', headers:{'Content-Type':'application/json'},
         body: JSON.stringify({reply:t})
       });
       toast('draft saved');
     }
 
-    async function handleDismiss(e, id) {
-      e.stopPropagation();
-      await fetch('/api/posts/'+id+'/dismiss', {method:'POST'});
-      // increment today's reply count
-      repliedCount++;
-      localStorage.setItem('repliedToday', repliedCount);
-      localStorage.setItem('repliedDate', today);
-      document.getElementById('replied-count').textContent = repliedCount;
-      const el = document.getElementById('c-'+id);
-      el.style.opacity = '0';
-      el.style.transition = 'opacity 0.2s';
-      setTimeout(() => { el.remove(); posts = posts.filter(p => p.id !== id); }, 200);
-      toast('marked as handled');
+    function saveAsTemplate(postId) {
+      const text = document.getElementById('ed-'+postId).value;
+      if (!text.trim()) { toast('write a reply first'); return; }
+      const label = prompt('give this template a label (e.g. relapse empathy, PIED support):');
+      if (!label) return;
+      const savedBy = prompt('who is saving this? (kaif or abdul):') || 'kaif';
+      fetch('/api/templates', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({label, text, savedBy})
+      }).then(() => toast('template saved'));
     }
 
-    function openR(e, url) {
+    async function handleDismiss(e, id, person) {
       e.stopPropagation();
-      window.open(url, '_blank');
+      await fetch(`/api/posts/${id}/dismiss/${person}`, {method:'POST'});
+      const post = posts.find(p => p.id === id);
+      if (post) post.handledBy = person;
+      const countEl = document.getElementById('s-' + person);
+      if (countEl) countEl.textContent = parseInt(countEl.textContent || '0') + 1;
+      const cardEl = document.getElementById('c-'+id);
+      if (cardEl) { cardEl.style.opacity = '0'; cardEl.style.transition = 'opacity 0.3s'; }
+      setTimeout(() => render(), 300);
+      toast(`marked as handled by ${person}`);
     }
+
+    function openR(e, url) { e.stopPropagation(); window.open(url, '_blank'); }
+
+    // ── Subreddit stats ────────────────────────────────────────────────────────────
+
+    async function loadSubredditStats() {
+      const el = document.getElementById('sub-content');
+      el.innerHTML = '<div class="empty">loading...</div>';
+      const res = await fetch('/api/subreddit-stats');
+      const data = await res.json();
+      if (!data.length) { el.innerHTML = '<div class="empty">no data yet</div>'; return; }
+      const maxTotal = Math.max(...data.map(s => s.total));
+      el.innerHTML = `<table>
+        <tr>
+          <th>subreddit</th>
+          <th>posts found</th>
+          <th>volume</th>
+          <th>very high</th>
+          <th>handled</th>
+        </tr>
+        ${data.map(s => `<tr>
+          <td class="sub-name">r/${s.subreddit}</td>
+          <td>${s.total}</td>
+          <td>
+            <span class="bar-wrap">
+              <span class="bar-fill" style="width:${Math.round((s.total/maxTotal)*100)}%"></span>
+            </span>
+          </td>
+          <td style="color:#ff4d4d">${s.veryHigh}</td>
+          <td style="color:#44cc88">${s.handled}</td>
+        </tr>`).join('')}
+      </table>`;
+    }
+
+    // ── Templates ─────────────────────────────────────────────────────────────────
+
+    async function loadTemplates() {
+      const res = await fetch('/api/templates');
+      const templates = await res.json();
+      const el = document.getElementById('tmpl-list');
+      if (!templates.length) { el.innerHTML = '<div class="empty">no templates saved yet — reply to some posts and save the good ones</div>'; return; }
+      el.innerHTML = templates.map(t => `
+        <div class="tmpl-card" id="tmpl-${t.id}">
+          <div class="tmpl-label">
+            <span>${esc(t.label)}</span>
+            <button class="btn danger" onclick="deleteTemplate('${t.id}')">delete</button>
+          </div>
+          <div class="tmpl-text">${esc(t.text)}</div>
+          <div class="tmpl-meta">saved by ${t.savedBy}</div>
+          <div class="tmpl-actions">
+            <button class="btn" onclick="copyTemplate('${t.id}')">copy</button>
+          </div>
+        </div>`).join('');
+    }
+
+    async function saveTemplate() {
+      const label   = document.getElementById('tmpl-label').value.trim();
+      const text    = document.getElementById('tmpl-text').value.trim();
+      const savedBy = document.getElementById('tmpl-savedby').value;
+      if (!label || !text) { toast('label and reply text are required'); return; }
+      await fetch('/api/templates', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({label, text, savedBy})
+      });
+      document.getElementById('tmpl-label').value = '';
+      document.getElementById('tmpl-text').value  = '';
+      toast('template saved');
+      loadTemplates();
+    }
+
+    async function deleteTemplate(id) {
+      await fetch('/api/templates/'+id, {method:'DELETE'});
+      document.getElementById('tmpl-'+id)?.remove();
+      toast('template deleted');
+    }
+
+    function copyTemplate(id) {
+      const textEl = document.querySelector(`#tmpl-${id} .tmpl-text`);
+      if (!textEl) return;
+      navigator.clipboard.writeText(textEl.textContent).then(() => toast('copied'));
+    }
+
+    // ── Shared ────────────────────────────────────────────────────────────────────
 
     async function manualRefresh() {
       const btn = document.getElementById('rbtn');
-      btn.textContent = 'refreshing...';
-      btn.disabled = true;
+      btn.textContent = 'refreshing...'; btn.disabled = true;
       await fetch('/api/refresh', {method:'POST'});
       await load();
-      btn.textContent = '↻ refresh';
-      btn.disabled = false;
+      btn.textContent = '↻ refresh'; btn.disabled = false;
       toast('feed refreshed');
     }
 
     function toast(msg) {
       const t = document.getElementById('toast');
-      t.textContent = msg;
-      t.classList.add('show');
+      t.textContent = msg; t.classList.add('show');
       setTimeout(() => t.classList.remove('show'), 2500);
     }
 
