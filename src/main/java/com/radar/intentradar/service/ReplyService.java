@@ -24,40 +24,39 @@ public class ReplyService {
 
     private static final String SYSTEM = """
         You are someone who personally struggled with porn addiction for years and is now in recovery.
-        You browse Reddit and see people in pain. You reply like a real person who has been through it,
-        not a therapist, not a coach, not anyone selling anything.
+        You browse Reddit and see someone struggling. You want to help them genuinely.
 
-        MOST IMPORTANT RULE: Every reply must be specific to what THIS person wrote.
-        Read their post carefully. Reference something specific they said, their exact situation,
-        their specific words. A generic reply that could apply to anyone is a failure.
-        If they mentioned their girlfriend, reference the relationship. If they mentioned a number
-        of days, reference that. If they described a specific trigger, reference that trigger.
-        Make them feel like someone actually read their post, not a copy paste response.
+        MOST IMPORTANT RULE: Read the post carefully and write replies that are specific to their
+        exact situation. Do not repeat back what they said. Do not summarize their post to them.
+        Just respond like a human who read it and wants to help.
 
-        Write 3 different reply options. Each one should feel like it came from a real Reddit user
-        who read every word of this specific post.
+        Write 3 different reply options. Each reply should offer genuine support or a practical
+        insight that actually helps this specific person with their specific situation.
 
         Hard rules:
+        - Never repeat or summarize what the person said back to them
         - Never use em dashes or dashes to connect thoughts. Use plain sentences instead.
         - Never mention any app, tool, product, or website
-        - No motivational cliches. Never say "you got this", "stay strong", "keep pushing", "one day at a time"
+        - No motivational cliches. No "you got this", "stay strong", "keep pushing", "one day at a time"
         - Do not start any reply with the word "I"
         - No bullet points or lists inside the reply
-        - No lecturing. No 5 step plans. No advice unless they asked for it.
-        - Write casually like you are texting a friend, not writing an essay
-        - Each reply must be 3 to 5 sentences long. Give some substance.
-        - Match the emotional energy of the post exactly
+        - No lecturing. No 5 step plans.
+        - Write casually like texting a friend who has been through the same thing
+        - Each reply must be 3 to 5 sentences long
+        - Match the emotional energy of the post
         - Sound like someone who gets it because they lived it
-        - No hashtags, no emojis unless the post itself uses them
+        - No hashtags, no emojis unless the post uses them
+        - Focus on actually helping them, giving them something real to hold onto
 
-        The 3 replies must have these different approaches:
-        1. Just acknowledge their specific pain, reference something they actually said, make them feel heard
-        2. Honest and raw, like a close friend who has been through the same exact thing they described
-        3. Ask one single genuine question about something specific in their post
+        The 3 replies should each take a slightly different angle on how to help:
+        1. Emotional support — make them feel less alone, less ashamed, more human
+        2. Practical insight — something real that actually helped you when you were in the same place
+        3. Perspective shift — a different way to look at their situation that might help them move forward
 
         Return ONLY a valid JSON array with exactly 3 objects. No markdown, no explanation, nothing else:
-        [{"tone":"empathetic","reply":"..."},{"tone":"honest","reply":"..."},{"tone":"curious","reply":"..."}]
+        [{"tone":"support","reply":"..."},{"tone":"insight","reply":"..."},{"tone":"perspective","reply":"..."}]
         """;
+
     public List<ReplyOption> generate(RedditPost post) {
         if (apiKey == null || apiKey.isBlank() || apiKey.equals("YOUR_GROQ_KEY_HERE")) {
             log.error("Groq API key is not set");
@@ -68,8 +67,8 @@ public class ReplyService {
 
             ObjectNode requestBody = mapper.createObjectNode();
             requestBody.put("model", "llama-3.3-70b-versatile");
-            requestBody.put("temperature", 0.85);
-            requestBody.put("max_tokens", 800);
+            requestBody.put("temperature", 0.9);
+            requestBody.put("max_tokens", 900);
 
             ArrayNode messages = requestBody.putArray("messages");
             messages.addObject().put("role", "system").put("content", SYSTEM);
@@ -86,11 +85,10 @@ public class ReplyService {
                     .build();
 
             var res = http.send(req, HttpResponse.BodyHandlers.ofString());
-
             log.info("Groq status: {}", res.statusCode());
 
             if (res.statusCode() != 200) {
-                log.error("Groq error: {} — {}", res.statusCode(), res.body());
+                log.error("Groq error: {} {}", res.statusCode(), res.body());
                 return fallback();
             }
 
@@ -105,11 +103,10 @@ public class ReplyService {
                     .replaceAll("(?s)```\\s*", "")
                     .trim();
 
-            // Find the JSON array — sometimes model adds text before or after
             int start = content.indexOf('[');
             int end   = content.lastIndexOf(']');
             if (start == -1 || end == -1) {
-                log.error("No JSON array found in Groq response: {}", content);
+                log.error("No JSON array in Groq response: {}", content);
                 return fallback();
             }
             content = content.substring(start, end + 1);
@@ -117,13 +114,13 @@ public class ReplyService {
             List<ReplyOption> replies = new ArrayList<>();
             for (JsonNode r : mapper.readTree(content)) {
                 replies.add(new ReplyOption(
-                        r.path("tone").asText("empathetic"),
+                        r.path("tone").asText("support"),
                         r.path("reply").asText()
                 ));
             }
 
             if (replies.isEmpty()) {
-                log.error("Parsed empty replies from: {}", content);
+                log.error("Empty replies parsed from: {}", content);
                 return fallback();
             }
 
@@ -131,31 +128,32 @@ public class ReplyService {
             return replies;
 
         } catch (Exception e) {
-            log.error("Groq exception: {} — {}", e.getClass().getSimpleName(), e.getMessage());
+            log.error("Groq exception: {} {}", e.getClass().getSimpleName(), e.getMessage());
             return fallback();
         }
     }
 
     private String buildMessage(RedditPost post) {
         String body = (post.getSelftext() == null || post.getSelftext().isBlank())
-                ? "(no body text, only the title was posted)"
+                ? "(no body text, title only post)"
                 : truncate(post.getSelftext(), 800);
 
-        return "READ THIS POST CAREFULLY BEFORE WRITING. YOUR REPLIES MUST REFERENCE SPECIFIC DETAILS FROM THIS POST.\n\n"
+        return "Here is the Reddit post you need to reply to:\n\n"
                 + "Subreddit: r/" + post.getSubreddit() + "\n"
                 + "Title: " + post.getTitle() + "\n"
                 + "Body: " + body + "\n"
-                + "Detected emotions: " + post.getDetectedEmotions() + "\n"
+                + "Emotions detected: " + post.getDetectedEmotions() + "\n"
                 + "Tags: " + String.join(", ", post.getTags() != null ? Arrays.asList(post.getTags()) : List.of()) + "\n\n"
-                + "Now write 3 replies that are SPECIFIC to what this person wrote above. "
-                + "Do not write generic replies. Reference their actual situation, their actual words, their actual struggle.";
+                + "Write 3 replies that genuinely help this specific person. "
+                + "Do NOT repeat back what they said. Do NOT summarize their post. "
+                + "Just respond with something real and helpful based on their specific situation.";
     }
 
     private List<ReplyOption> fallback() {
         return List.of(
-                new ReplyOption("empathetic", "That sounds really exhausting and the fact you are talking about it at all says a lot about where you want to be."),
-                new ReplyOption("honest", "Nobody tells you how long this actually takes or how many times you will slip before it starts to click. That part is normal even when it does not feel like it."),
-                new ReplyOption("curious", "What does your day usually look like when this happens, like is there a pattern you have noticed or does it feel completely random?")
+                new ReplyOption("support", "That feeling after a relapse is one of the worst parts of this whole thing and it does not mean you are back to square one even when it feels that way."),
+                new ReplyOption("insight", "The shame spiral after a slip is usually what makes the next one more likely. Breaking that cycle matters more than the streak number."),
+                new ReplyOption("perspective", "Every single person who has gotten through this has a long list of relapses behind them. The ones who made it are not the ones who never slipped.")
         );
     }
 
