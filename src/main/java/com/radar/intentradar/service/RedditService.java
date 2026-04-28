@@ -34,7 +34,7 @@ public class RedditService {
             long cutoff = Instant.now().getEpochSecond() - (maxAgeHours * 3600L);
 
             // Public JSON API - no auth needed
-            String url = "https://www.reddit.com/r/" + subreddit + "/new.json?limit=50";
+            String url = "https://www.reddit.com/r/" + subreddit + "/new.json?limit=100";
 
             var req = HttpRequest.newBuilder()
                     .uri(URI.create(url))

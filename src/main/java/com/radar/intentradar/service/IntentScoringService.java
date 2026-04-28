@@ -267,6 +267,6 @@ public class IntentScoringService {
     }
 
     public boolean isWorthShowing(RedditPost post) {
-        return post.getIntentScore() >= 25;
+        return post.getIntentScore() >= 20;
     }
 }

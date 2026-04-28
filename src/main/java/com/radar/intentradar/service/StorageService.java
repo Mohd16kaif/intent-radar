@@ -19,39 +19,62 @@ public class StorageService {
     @Value("${storage.file-path}")
     private String filePath;
 
+    // Separate file just for counts — survives independent of posts.json
+    private String countsFilePath;
+
     private final ObjectMapper mapper = new ObjectMapper();
     private final Map<String, RedditPost> store = new ConcurrentHashMap<>();
-
-    // Per-person counters — stored in memory, reset on restart
-    // Since /tmp resets on Render redeploy anyway, in-memory is fine
     private final Map<String, AtomicInteger> counters = new ConcurrentHashMap<>();
 
     public void load() {
-        // Init counters
+        // Derive counts file path from posts file path
+        countsFilePath = filePath.replace("posts.json", "counts.json");
+
+        // Always init counters first
         counters.put("kaif", new AtomicInteger(0));
         counters.put("abdul", new AtomicInteger(0));
 
+        // Load counts from dedicated counts.json first
+        loadCounts();
+
+        // Load posts
         File f = new File(filePath);
         if (!f.exists()) { log.info("No posts.json yet, starting fresh"); return; }
         try {
             List<RedditPost> list = mapper.readValue(f, new TypeReference<>() {});
-            list.forEach(p -> {
-                store.put(p.getId(), p);
-                // Rebuild counters from saved data for today
-                if (p.getHandledBy() != null && !p.getHandledBy().isBlank()) {
-                    String person = p.getHandledBy().toLowerCase();
-                    counters.computeIfAbsent(person, k -> new AtomicInteger(0)).incrementAndGet();
-                }
-            });
+            list.forEach(p -> store.put(p.getId(), p));
             log.info("Loaded {} posts from disk", list.size());
         } catch (Exception e) { log.error("Load failed: {}", e.getMessage()); }
+    }
+
+    private void loadCounts() {
+        File f = new File(countsFilePath);
+        if (!f.exists()) { log.info("No counts.json yet, starting at zero"); return; }
+        try {
+            Map<String, Integer> saved = mapper.readValue(f, new TypeReference<>() {});
+            saved.forEach((k, v) -> counters.put(k, new AtomicInteger(v)));
+            log.info("Loaded counts: kaif={}, abdul={}",
+                    counters.getOrDefault("kaif", new AtomicInteger(0)).get(),
+                    counters.getOrDefault("abdul", new AtomicInteger(0)).get());
+        } catch (Exception e) { log.error("Failed to load counts: {}", e.getMessage()); }
+    }
+
+    private void saveCounts() {
+        try {
+            Map<String, Integer> toSave = new HashMap<>();
+            counters.forEach((k, v) -> toSave.put(k, v.get()));
+            File f = new File(countsFilePath);
+            if (f.getParentFile() != null) f.getParentFile().mkdirs();
+            mapper.writerWithDefaultPrettyPrinter().writeValue(f, toSave);
+        } catch (Exception e) { log.error("Failed to save counts: {}", e.getMessage()); }
     }
 
     public void save() {
         try {
             File file = new File(filePath);
             if (file.getParentFile() != null) file.getParentFile().mkdirs();
-            mapper.writerWithDefaultPrettyPrinter().writeValue(file, new ArrayList<>(store.values()));
+            mapper.writerWithDefaultPrettyPrinter()
+                    .writeValue(file, new ArrayList<>(store.values()));
         } catch (Exception e) { log.error("Save failed: {}", e.getMessage()); }
     }
 
@@ -64,10 +87,14 @@ public class StorageService {
         return added;
     }
 
+    // Sort: recent high-intent posts first, then older ones
+    // Primary: intent score bucket (VH, H, M), Secondary: recency within bucket
     public List<RedditPost> getSortedByScore() {
         return store.values().stream()
                 .filter(p -> !p.isDismissed())
-                .sorted(Comparator.comparingInt(RedditPost::getIntentScore).reversed())
+                .sorted(Comparator
+                        .comparingInt(RedditPost::getIntentScore).reversed()
+                        .thenComparingLong(RedditPost::getCreatedUtc).reversed())
                 .toList();
     }
 
@@ -79,8 +106,10 @@ public class StorageService {
             p.setHandledBy(person.toLowerCase());
             return p;
         });
-        counters.computeIfAbsent(person.toLowerCase(), k -> new AtomicInteger(0)).incrementAndGet();
+        counters.computeIfAbsent(person.toLowerCase(), k -> new AtomicInteger(0))
+                .incrementAndGet();
         save();
+        saveCounts(); // Save counts separately so they survive restarts
     }
 
     public void saveReply(String id, String reply) {
@@ -89,7 +118,8 @@ public class StorageService {
     }
 
     public void prune() {
-        long cutoff = System.currentTimeMillis() / 1000 - 86400;
+        // Extended to 48 hours to keep more posts
+        long cutoff = System.currentTimeMillis() / 1000 - (48 * 3600);
         int before = store.size();
         store.entrySet().removeIf(e -> e.getValue().getCreatedUtc() < cutoff);
         int pruned = before - store.size();
@@ -106,7 +136,6 @@ public class StorageService {
 
     public List<Map<String, Object>> getSubredditStats() {
         Map<String, Map<String, Object>> stats = new HashMap<>();
-
         for (RedditPost post : store.values()) {
             String sub = post.getSubreddit();
             stats.computeIfAbsent(sub, k -> {
@@ -117,18 +146,13 @@ public class StorageService {
                 m.put("veryHigh", 0);
                 return m;
             });
-
             Map<String, Object> s = stats.get(sub);
             s.put("total", (int) s.get("total") + 1);
             if (post.getHandledBy() != null) s.put("handled", (int) s.get("handled") + 1);
             if (post.getIntentScore() >= 80)  s.put("veryHigh", (int) s.get("veryHigh") + 1);
         }
-
         return stats.values().stream()
                 .sorted((a, b) -> (int) b.get("total") - (int) a.get("total"))
                 .toList();
     }
-
-
-
 }
