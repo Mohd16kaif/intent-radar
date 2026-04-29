@@ -20,7 +20,7 @@
         .nav-btn.on { color: #fff; border-bottom-color: #ff4d4d; }
         .page { display: none; }
         .page.on { display: block; }
-        .filters { padding: 12px 24px; display: flex; gap: 10px; border-bottom: 1px solid #1a1a1a; }
+        .filters { padding: 12px 24px; display: flex; gap: 10px; border-bottom: 1px solid #1a1a1a; align-items: center; }
         .fb { padding: 6px 16px; border: 1px solid #333; background: transparent; color: #888; cursor: pointer; font-size: 13px; font-family: monospace; }
         .fb.on { border-color: #ff4d4d; color: #ff4d4d; background: rgba(255,77,77,0.07); }
         .feed { padding: 16px 24px; display: flex; flex-direction: column; gap: 10px; max-width: 960px; }
@@ -80,7 +80,6 @@
         .toast.show { opacity: 1; }
         .refresh-btn { padding: 6px 14px; border: 1px solid #2a2a2a; background: transparent; color: #888; cursor: pointer; font-size: 13px; font-family: monospace; }
         .refresh-btn:hover { color: #ccc; }
-        /* Subreddit stats */
         .sub-table { padding: 24px; max-width: 800px; }
         .sub-table table { width: 100%; border-collapse: collapse; }
         .sub-table th { font-size: 11px; color: #444; text-transform: uppercase; letter-spacing: 0.5px; padding: 8px 12px; border-bottom: 1px solid #1a1a1a; text-align: left; }
@@ -89,7 +88,6 @@
         .sub-name { color: #4a9eff; }
         .bar-wrap { width: 120px; background: #1a1a1a; height: 6px; border-radius: 3px; display: inline-block; vertical-align: middle; }
         .bar-fill { height: 6px; border-radius: 3px; background: #ff4d4d; }
-        /* Templates */
         .tmpl-page { padding: 24px; max-width: 800px; }
         .tmpl-add { background: #111; border: 1px solid #1e1e1e; padding: 16px; margin-bottom: 20px; }
         .tmpl-add input { width: 100%; padding: 8px 10px; border: 1px solid #2a2a2a; background: #080808; color: #ddd; font-size: 13px; font-family: monospace; margin-bottom: 8px; }
@@ -127,16 +125,19 @@
 </div>
 
 <!-- FEED PAGE -->
-<div class="filters">
-    <button class="fb on" id="f-ALL" onclick="setFilter('ALL')">all</button>
-    <button class="fb" id="f-VH" onclick="setFilter('VH')">🔥 very high (80+)</button>
-    <button class="fb" id="f-HIGH" onclick="setFilter('HIGH')">high (60+)</button>
-    <button class="fb" id="f-MEDIUM" onclick="setFilter('MEDIUM')">medium (35+)</button>
-    <div style="margin-left:auto;display:flex;gap:8px;align-items:center">
-        <span style="font-size:11px;color:#444">sort by:</span>
-        <button class="fb on" id="sort-RECENT" onclick="setSort('RECENT')">recent first</button>
-        <button class="fb" id="sort-SCORE" onclick="setSort('SCORE')">score first</button>
+<div class="page on" id="page-feed">
+    <div class="filters">
+        <button class="fb on" id="f-ALL" onclick="setFilter('ALL')">all</button>
+        <button class="fb" id="f-VH" onclick="setFilter('VH')">🔥 very high (80+)</button>
+        <button class="fb" id="f-HIGH" onclick="setFilter('HIGH')">high (60+)</button>
+        <button class="fb" id="f-MEDIUM" onclick="setFilter('MEDIUM')">medium (35+)</button>
+        <div style="margin-left:auto;display:flex;gap:8px;align-items:center">
+            <span style="font-size:11px;color:#444">sort by:</span>
+            <button class="fb on" id="sort-RECENT" onclick="setSort('RECENT')">recent first</button>
+            <button class="fb" id="sort-SCORE" onclick="setSort('SCORE')">score first</button>
+        </div>
     </div>
+    <div class="feed" id="feed"><div class="empty">loading...</div></div>
 </div>
 
 <!-- SUBREDDIT STATS PAGE -->
@@ -172,294 +173,277 @@
     let currentFilter = 'ALL';
     let currentSort = 'RECENT';
 
-        const bc = s => s >= 80 ? 'vh' : s >= 60 ? 'hi' : s >= 35 ? 'md' : 'lo';
-        const ago = t => {
-          const m = Math.floor((Date.now()/1000 - t)/60);
-          if (m < 60) return m + 'm ago';
-          return Math.floor(m/60) + 'h ago';
-        };
-        const esc  = s => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-        const escA = s => String(s||'').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+    const bc  = s => s >= 80 ? 'vh' : s >= 60 ? 'hi' : s >= 35 ? 'md' : 'lo';
+    const ago = t => { const m = Math.floor((Date.now()/1000 - t)/60); return m < 60 ? m+'m ago' : Math.floor(m/60)+'h ago'; };
+    const esc  = s => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    const escA = s => String(s||'').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
 
-        // ── Navigation ────────────────────────────────────────────────────────────────
+    function showPage(name) {
+      document.querySelectorAll('.page').forEach(p => p.classList.remove('on'));
+      document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('on'));
+      document.getElementById('page-' + name).classList.add('on');
+      document.getElementById('nav-' + name).classList.add('on');
+      if (name === 'subreddits') loadSubredditStats();
+      if (name === 'templates')  loadTemplates();
+    }
 
-        function showPage(name) {
-          document.querySelectorAll('.page').forEach(p => p.classList.remove('on'));
-          document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('on'));
-          document.getElementById('page-' + name).classList.add('on');
-          document.getElementById('nav-' + name).classList.add('on');
-          if (name === 'subreddits') loadSubredditStats();
-          if (name === 'templates')  loadTemplates();
-        }
+    async function load() {
+      try {
+        const [pr, sr] = await Promise.all([fetch('/api/posts'), fetch('/api/stats')]);
+        posts = await pr.json();
+        const s = await sr.json();
+        document.getElementById('s-vh').textContent    = s.veryHigh;
+        document.getElementById('s-hi').textContent    = s.high;
+        document.getElementById('s-md').textContent    = s.medium;
+        document.getElementById('s-total').textContent = s.total;
+        document.getElementById('s-kaif').textContent  = s.count_kaif  || 0;
+        document.getElementById('s-abdul').textContent = s.count_abdul || 0;
+        render();
+      } catch(e) {
+        document.getElementById('feed').innerHTML = '<div class="empty">backend not reachable</div>';
+      }
+    }
 
-        // ── Load main data ─────────────────────────────────────────────────────────────
+    function setFilter(f) {
+      currentFilter = f;
+      // only touch filter buttons, not sort buttons
+      document.querySelectorAll('[id^="f-"]').forEach(b => b.classList.remove('on'));
+      document.getElementById('f-' + f).classList.add('on');
+      render();
+    }
 
-        async function load() {
-          try {
-            const [pr, sr] = await Promise.all([fetch('/api/posts'), fetch('/api/stats')]);
-            posts = await pr.json();
-            const s = await sr.json();
-            document.getElementById('s-vh').textContent    = s.veryHigh;
-            document.getElementById('s-hi').textContent    = s.high;
-            document.getElementById('s-md').textContent    = s.medium;
-            document.getElementById('s-total').textContent = s.total;
-            document.getElementById('s-kaif').textContent  = s.count_kaif  || 0;
-            document.getElementById('s-abdul').textContent = s.count_abdul || 0;
-            render();
-          } catch(e) {
-            document.getElementById('feed').innerHTML = '<div class="empty">backend not reachable</div>';
-          }
-        }
+    function setSort(s) {
+      currentSort = s;
+      document.querySelectorAll('[id^="sort-"]').forEach(b => b.classList.remove('on'));
+      document.getElementById('sort-' + s).classList.add('on');
+      render();
+    }
 
-        // ── Feed ──────────────────────────────────────────────────────────────────────
+    function render() {
+      let list = [...posts];
 
-        function setFilter(f) {
-          currentFilter = f;
-          document.querySelectorAll('.fb').forEach(b => b.classList.remove('on'));
-          document.getElementById('f-' + f).classList.add('on');
-          render();
-        }
+      // sort first
+      if (currentSort === 'RECENT') {
+        list.sort((a, b) => b.createdUtc - a.createdUtc);
+      } else {
+        list.sort((a, b) => b.intentScore - a.intentScore);
+      }
 
-        function setSort(s) {
-  currentSort = s;
-  document.querySelectorAll('[id^="sort-"]').forEach(b => b.classList.remove('on'));
-  document.getElementById('sort-' + s).classList.add('on');
-  render();
-}
+      // then filter
+      if (currentFilter === 'VH')          list = list.filter(p => p.intentScore >= 80);
+      else if (currentFilter === 'HIGH')   list = list.filter(p => p.intentScore >= 60 && p.intentScore < 80);
+      else if (currentFilter === 'MEDIUM') list = list.filter(p => p.intentScore >= 35 && p.intentScore < 60);
 
-        function render() {
-         let list = [...posts];
-if (currentSort === 'RECENT') {
-  list.sort((a, b) => b.createdUtc - a.createdUtc);
-} else {
-  list.sort((a, b) => b.intentScore - a.intentScore);
-}
-          if (currentFilter === 'VH')          list = list.filter(p => p.intentScore >= 80);
-          else if (currentFilter === 'HIGH')   list = list.filter(p => p.intentScore >= 60 && p.intentScore < 80);
-          else if (currentFilter === 'MEDIUM') list = list.filter(p => p.intentScore >= 35 && p.intentScore < 60);
-          const feed = document.getElementById('feed');
-          if (!list.length) { feed.innerHTML = '<div class="empty">no posts in this filter</div>'; return; }
-          feed.innerHTML = list.map(card).join('');
-        }
+      const feed = document.getElementById('feed');
+      if (!feed) return;
+      if (!list.length) { feed.innerHTML = '<div class="empty">no posts in this filter</div>'; return; }
+      feed.innerHTML = list.map(card).join('');
+    }
 
-        function card(p) {
-          const tags = (p.tags||[]).map(t => `<span class="tag">${t}</span>`).join('');
-          const preview = p.selftext ? p.selftext.substring(0, 600) : '';
-          const handledBadge = p.handledBy
-            ? `<span class="handled-badge ${p.handledBy}">✓ handled by ${p.handledBy}</span>`
-            : '';
-          const actionBtns = p.handledBy
-            ? `<div style="font-size:11px;color:#444;text-align:right">already handled</div>`
-            : `<button class="cbtn open" onclick="openR(event,'${escA(p.url)}')">open reddit ↗</button>
-               <button class="cbtn kaif" onclick="handleDismiss(event,'${p.id}','kaif')">✓ kaif</button>
-               <button class="cbtn abdul" onclick="handleDismiss(event,'${p.id}','abdul')">✓ abdul</button>`;
+    function card(p) {
+      const tags = (p.tags||[]).map(t => `<span class="tag">${t}</span>`).join('');
+      const preview = p.selftext ? p.selftext.substring(0, 600) : '';
+      const handledBadge = p.handledBy
+        ? `<span class="handled-badge ${p.handledBy}">✓ handled by ${p.handledBy}</span>`
+        : '';
+      const actionBtns = p.handledBy
+        ? `<div style="font-size:11px;color:#444;text-align:right">already handled</div>`
+        : `<button class="cbtn open" onclick="openR(event,'${escA(p.url)}')">open reddit ↗</button>
+           <button class="cbtn kaif" onclick="handleDismiss(event,'${p.id}','kaif')">✓ kaif</button>
+           <button class="cbtn abdul" onclick="handleDismiss(event,'${p.id}','abdul')">✓ abdul</button>`;
 
-          return `<div class="card ${p.handledBy ? 'handled-'+p.handledBy : ''}" id="c-${p.id}">
-            <div class="card-top" onclick="toggle('${p.id}')">
-              <div class="badge ${bc(p.intentScore)}">
-                <div class="badge-num">${p.intentScore}</div>
-                <div class="badge-lvl">${p.intentLevel}</div>
-              </div>
-              <div class="card-info">
-                <div class="card-title">${esc(p.title)}</div>
-                <div class="card-meta">
-                  <span class="card-sub">r/${p.subreddit}</span>
-                  <span>${ago(p.createdUtc)}</span>
-                  <span>u/${p.author}</span>
-                  ${p.detectedEmotions ? `<span class="card-emo">${p.detectedEmotions}</span>` : ''}
-                  ${handledBadge}
-                </div>
-                <div class="tags">${tags}</div>
-              </div>
-              <div class="card-btns">${actionBtns}</div>
+      return `<div class="card ${p.handledBy ? 'handled-'+p.handledBy : ''}" id="c-${p.id}">
+        <div class="card-top" onclick="toggle('${p.id}')">
+          <div class="badge ${bc(p.intentScore)}">
+            <div class="badge-num">${p.intentScore}</div>
+            <div class="badge-lvl">${p.intentLevel}</div>
+          </div>
+          <div class="card-info">
+            <div class="card-title">${esc(p.title)}</div>
+            <div class="card-meta">
+              <span class="card-sub">r/${p.subreddit}</span>
+              <span>${ago(p.createdUtc)}</span>
+              <span>u/${p.author}</span>
+              ${p.detectedEmotions ? `<span class="card-emo">${p.detectedEmotions}</span>` : ''}
+              ${handledBadge}
             </div>
-            <div class="body" id="b-${p.id}">
-              ${preview ? `<div class="post-body">${esc(preview)}</div>` : '<div style="color:#333;font-size:12px;padding:8px 0">no body text</div>'}
-              <div class="sec-label">ai reply options</div>
-              <div id="r-${p.id}">
-                <button class="btn primary" onclick="genReplies('${p.id}')">✦ generate replies</button>
-              </div>
-              <div style="margin-top:12px">
-                <div class="sec-label">your reply — edit then copy to reddit</div>
-                <textarea id="ed-${p.id}" placeholder="select a reply above or write your own...">${esc(p.savedReply||'')}</textarea>
-                <div class="row">
-                  <span class="hint">⚠ no links · no app mention · be human</span>
-                  <button class="btn" onclick="copyReply('${p.id}')">copy</button>
-                  <button class="btn" onclick="saveDraft('${p.id}')">save draft</button>
-                  <button class="btn" onclick="saveAsTemplate('${p.id}')">save as template</button>
-                </div>
-              </div>
+            <div class="tags">${tags}</div>
+          </div>
+          <div class="card-btns">${actionBtns}</div>
+        </div>
+        <div class="body" id="b-${p.id}">
+          ${preview ? `<div class="post-body">${esc(preview)}</div>` : '<div style="color:#333;font-size:12px;padding:8px 0">no body text</div>'}
+          <div class="sec-label">ai reply options</div>
+          <div id="r-${p.id}">
+            <button class="btn primary" onclick="genReplies('${p.id}')">✦ generate replies</button>
+          </div>
+          <div style="margin-top:12px">
+            <div class="sec-label">your reply — edit then copy to reddit</div>
+            <textarea id="ed-${p.id}" placeholder="select a reply above or write your own...">${esc(p.savedReply||'')}</textarea>
+            <div class="row">
+              <span class="hint">⚠ no links · no app mention · be human</span>
+              <button class="btn" onclick="copyReply('${p.id}')">copy</button>
+              <button class="btn" onclick="saveDraft('${p.id}')">save draft</button>
+              <button class="btn" onclick="saveAsTemplate('${p.id}')">save as template</button>
             </div>
-          </div>`;
-        }
+          </div>
+        </div>
+      </div>`;
+    }
 
-        function toggle(id) { document.getElementById('b-'+id).classList.toggle('open'); }
+    function toggle(id) { document.getElementById('b-'+id).classList.toggle('open'); }
 
-        async function genReplies(id) {
-          const c = document.getElementById('r-'+id);
-          c.innerHTML = '<div class="loading">generating replies...</div>';
-          try {
-            const res = await fetch('/api/posts/'+id+'/replies', {method:'POST'});
-            const replies = await res.json();
-            c.innerHTML = `<div class="reply-opts" id="opts-${id}">
-              ${replies.map((r,i) => `
-                <div class="ropt" onclick="pick('${id}',${i},this)" data-r="${escA(r.reply)}">
-                  <div class="rtone">${r.tone}</div>
-                  <div class="rtext">${esc(r.reply)}</div>
-                </div>`).join('')}
-            </div>
-            <button class="btn" style="margin-bottom:10px" onclick="genReplies('${id}')">↻ regenerate</button>`;
-          } catch(e) {
-            c.innerHTML = '<div class="loading">failed to generate replies</div>';
-          }
-        }
+    async function genReplies(id) {
+      const c = document.getElementById('r-'+id);
+      c.innerHTML = '<div class="loading">generating replies...</div>';
+      try {
+        const res = await fetch('/api/posts/'+id+'/replies', {method:'POST'});
+        const replies = await res.json();
+        c.innerHTML = `<div class="reply-opts" id="opts-${id}">
+          ${replies.map((r,i) => `
+            <div class="ropt" onclick="pick('${id}',${i},this)" data-r="${escA(r.reply)}">
+              <div class="rtone">${r.tone}</div>
+              <div class="rtext">${esc(r.reply)}</div>
+            </div>`).join('')}
+        </div>
+        <button class="btn" style="margin-bottom:10px" onclick="genReplies('${id}')">↻ regenerate</button>`;
+      } catch(e) {
+        c.innerHTML = '<div class="loading">failed to generate replies</div>';
+      }
+    }
 
-        function pick(postId, idx, el) {
-          document.querySelectorAll(`#opts-${postId} .ropt`).forEach(o => o.classList.remove('sel'));
-          el.classList.add('sel');
-          document.getElementById('ed-'+postId).value = el.dataset.r;
-        }
+    function pick(postId, idx, el) {
+      document.querySelectorAll(`#opts-${postId} .ropt`).forEach(o => o.classList.remove('sel'));
+      el.classList.add('sel');
+      document.getElementById('ed-'+postId).value = el.dataset.r;
+    }
 
-        function copyReply(id) {
-          const t = document.getElementById('ed-'+id).value;
-          if (!t.trim()) { toast('nothing to copy'); return; }
-          navigator.clipboard.writeText(t).then(() => toast('copied — paste it on reddit'));
-        }
+    function copyReply(id) {
+      const t = document.getElementById('ed-'+id).value;
+      if (!t.trim()) { toast('nothing to copy'); return; }
+      navigator.clipboard.writeText(t).then(() => toast('copied — paste it on reddit'));
+    }
 
-        async function saveDraft(id) {
-          const t = document.getElementById('ed-'+id).value;
-          await fetch('/api/posts/'+id+'/reply', {
-            method:'POST', headers:{'Content-Type':'application/json'},
-            body: JSON.stringify({reply:t})
-          });
-          toast('draft saved');
-        }
+    async function saveDraft(id) {
+      const t = document.getElementById('ed-'+id).value;
+      await fetch('/api/posts/'+id+'/reply', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({reply:t})
+      });
+      toast('draft saved');
+    }
 
-        function saveAsTemplate(postId) {
-          const text = document.getElementById('ed-'+postId).value;
-          if (!text.trim()) { toast('write a reply first'); return; }
-          const label = prompt('give this template a label (e.g. relapse empathy, PIED support):');
-          if (!label) return;
-          const savedBy = prompt('who is saving this? (kaif or abdul):') || 'kaif';
-          fetch('/api/templates', {
-            method:'POST', headers:{'Content-Type':'application/json'},
-            body: JSON.stringify({label, text, savedBy})
-          }).then(() => toast('template saved'));
-        }
+    function saveAsTemplate(postId) {
+      const text = document.getElementById('ed-'+postId).value;
+      if (!text.trim()) { toast('write a reply first'); return; }
+      const label = prompt('give this template a label (e.g. relapse empathy, PIED support):');
+      if (!label) return;
+      const savedBy = prompt('who is saving this? (kaif or abdul):') || 'kaif';
+      fetch('/api/templates', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({label, text, savedBy})
+      }).then(() => toast('template saved'));
+    }
 
-        async function handleDismiss(e, id, person) {
-          e.stopPropagation();
-          await fetch(`/api/posts/${id}/dismiss/${person}`, {method:'POST'});
-          const post = posts.find(p => p.id === id);
-          if (post) post.handledBy = person;
-          const countEl = document.getElementById('s-' + person);
-          if (countEl) countEl.textContent = parseInt(countEl.textContent || '0') + 1;
-          const cardEl = document.getElementById('c-'+id);
-          if (cardEl) { cardEl.style.opacity = '0'; cardEl.style.transition = 'opacity 0.3s'; }
-          setTimeout(() => render(), 300);
-          toast(`marked as handled by ${person}`);
-        }
+    async function handleDismiss(e, id, person) {
+      e.stopPropagation();
+      await fetch(`/api/posts/${id}/dismiss/${person}`, {method:'POST'});
+      const post = posts.find(p => p.id === id);
+      if (post) post.handledBy = person;
+      const countEl = document.getElementById('s-' + person);
+      if (countEl) countEl.textContent = parseInt(countEl.textContent || '0') + 1;
+      const cardEl = document.getElementById('c-'+id);
+      if (cardEl) { cardEl.style.opacity = '0'; cardEl.style.transition = 'opacity 0.3s'; }
+      setTimeout(() => render(), 300);
+      toast(`marked as handled by ${person}`);
+    }
 
-        function openR(e, url) { e.stopPropagation(); window.open(url, '_blank'); }
+    function openR(e, url) { e.stopPropagation(); window.open(url, '_blank'); }
 
-        // ── Subreddit stats ────────────────────────────────────────────────────────────
+    async function loadSubredditStats() {
+      const el = document.getElementById('sub-content');
+      el.innerHTML = '<div class="empty">loading...</div>';
+      const res = await fetch('/api/subreddit-stats');
+      const data = await res.json();
+      if (!data.length) { el.innerHTML = '<div class="empty">no data yet</div>'; return; }
+      const maxTotal = Math.max(...data.map(s => s.total));
+      el.innerHTML = `<table>
+        <tr>
+          <th>subreddit</th><th>posts found</th><th>volume</th><th>very high</th><th>handled</th>
+        </tr>
+        ${data.map(s => `<tr>
+          <td class="sub-name">r/${s.subreddit}</td>
+          <td>${s.total}</td>
+          <td><span class="bar-wrap"><span class="bar-fill" style="width:${Math.round((s.total/maxTotal)*100)}%"></span></span></td>
+          <td style="color:#ff4d4d">${s.veryHigh}</td>
+          <td style="color:#44cc88">${s.handled}</td>
+        </tr>`).join('')}
+      </table>`;
+    }
 
-        async function loadSubredditStats() {
-          const el = document.getElementById('sub-content');
-          el.innerHTML = '<div class="empty">loading...</div>';
-          const res = await fetch('/api/subreddit-stats');
-          const data = await res.json();
-          if (!data.length) { el.innerHTML = '<div class="empty">no data yet</div>'; return; }
-          const maxTotal = Math.max(...data.map(s => s.total));
-          el.innerHTML = `<table>
-            <tr>
-              <th>subreddit</th>
-              <th>posts found</th>
-              <th>volume</th>
-              <th>very high</th>
-              <th>handled</th>
-            </tr>
-            ${data.map(s => `<tr>
-              <td class="sub-name">r/${s.subreddit}</td>
-              <td>${s.total}</td>
-              <td>
-                <span class="bar-wrap">
-                  <span class="bar-fill" style="width:${Math.round((s.total/maxTotal)*100)}%"></span>
-                </span>
-              </td>
-              <td style="color:#ff4d4d">${s.veryHigh}</td>
-              <td style="color:#44cc88">${s.handled}</td>
-            </tr>`).join('')}
-          </table>`;
-        }
+    async function loadTemplates() {
+      const res = await fetch('/api/templates');
+      const templates = await res.json();
+      const el = document.getElementById('tmpl-list');
+      if (!templates.length) { el.innerHTML = '<div class="empty">no templates saved yet</div>'; return; }
+      el.innerHTML = templates.map(t => `
+        <div class="tmpl-card" id="tmpl-${t.id}">
+          <div class="tmpl-label">
+            <span>${esc(t.label)}</span>
+            <button class="btn danger" onclick="deleteTemplate('${t.id}')">delete</button>
+          </div>
+          <div class="tmpl-text">${esc(t.text)}</div>
+          <div class="tmpl-meta">saved by ${t.savedBy}</div>
+          <div class="tmpl-actions">
+            <button class="btn" onclick="copyTemplate('${t.id}')">copy</button>
+          </div>
+        </div>`).join('');
+    }
 
-        // ── Templates ─────────────────────────────────────────────────────────────────
+    async function saveTemplate() {
+      const label   = document.getElementById('tmpl-label').value.trim();
+      const text    = document.getElementById('tmpl-text').value.trim();
+      const savedBy = document.getElementById('tmpl-savedby').value;
+      if (!label || !text) { toast('label and reply text are required'); return; }
+      await fetch('/api/templates', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({label, text, savedBy})
+      });
+      document.getElementById('tmpl-label').value = '';
+      document.getElementById('tmpl-text').value  = '';
+      toast('template saved');
+      loadTemplates();
+    }
 
-        async function loadTemplates() {
-          const res = await fetch('/api/templates');
-          const templates = await res.json();
-          const el = document.getElementById('tmpl-list');
-          if (!templates.length) { el.innerHTML = '<div class="empty">no templates saved yet — reply to some posts and save the good ones</div>'; return; }
-          el.innerHTML = templates.map(t => `
-            <div class="tmpl-card" id="tmpl-${t.id}">
-              <div class="tmpl-label">
-                <span>${esc(t.label)}</span>
-                <button class="btn danger" onclick="deleteTemplate('${t.id}')">delete</button>
-              </div>
-              <div class="tmpl-text">${esc(t.text)}</div>
-              <div class="tmpl-meta">saved by ${t.savedBy}</div>
-              <div class="tmpl-actions">
-                <button class="btn" onclick="copyTemplate('${t.id}')">copy</button>
-              </div>
-            </div>`).join('');
-        }
+    async function deleteTemplate(id) {
+      await fetch('/api/templates/'+id, {method:'DELETE'});
+      document.getElementById('tmpl-'+id)?.remove();
+      toast('template deleted');
+    }
 
-        async function saveTemplate() {
-          const label   = document.getElementById('tmpl-label').value.trim();
-          const text    = document.getElementById('tmpl-text').value.trim();
-          const savedBy = document.getElementById('tmpl-savedby').value;
-          if (!label || !text) { toast('label and reply text are required'); return; }
-          await fetch('/api/templates', {
-            method:'POST', headers:{'Content-Type':'application/json'},
-            body: JSON.stringify({label, text, savedBy})
-          });
-          document.getElementById('tmpl-label').value = '';
-          document.getElementById('tmpl-text').value  = '';
-          toast('template saved');
-          loadTemplates();
-        }
+    function copyTemplate(id) {
+      const textEl = document.querySelector(`#tmpl-${id} .tmpl-text`);
+      if (!textEl) return;
+      navigator.clipboard.writeText(textEl.textContent).then(() => toast('copied'));
+    }
 
-        async function deleteTemplate(id) {
-          await fetch('/api/templates/'+id, {method:'DELETE'});
-          document.getElementById('tmpl-'+id)?.remove();
-          toast('template deleted');
-        }
+    async function manualRefresh() {
+      const btn = document.getElementById('rbtn');
+      btn.textContent = 'refreshing...'; btn.disabled = true;
+      await fetch('/api/refresh', {method:'POST'});
+      await load();
+      btn.textContent = '↻ refresh'; btn.disabled = false;
+      toast('feed refreshed');
+    }
 
-        function copyTemplate(id) {
-          const textEl = document.querySelector(`#tmpl-${id} .tmpl-text`);
-          if (!textEl) return;
-          navigator.clipboard.writeText(textEl.textContent).then(() => toast('copied'));
-        }
+    function toast(msg) {
+      const t = document.getElementById('toast');
+      t.textContent = msg; t.classList.add('show');
+      setTimeout(() => t.classList.remove('show'), 2500);
+    }
 
-        // ── Shared ────────────────────────────────────────────────────────────────────
-
-        async function manualRefresh() {
-          const btn = document.getElementById('rbtn');
-          btn.textContent = 'refreshing...'; btn.disabled = true;
-          await fetch('/api/refresh', {method:'POST'});
-          await load();
-          btn.textContent = '↻ refresh'; btn.disabled = false;
-          toast('feed refreshed');
-        }
-
-        function toast(msg) {
-          const t = document.getElementById('toast');
-          t.textContent = msg; t.classList.add('show');
-          setTimeout(() => t.classList.remove('show'), 2500);
-        }
-
-        load();
-        setInterval(load, 5 * 60 * 1000);
+    load();
+    setInterval(load, 5 * 60 * 1000);
 </script>
 </body>
 </html>
