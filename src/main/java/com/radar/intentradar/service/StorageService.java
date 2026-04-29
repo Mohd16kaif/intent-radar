@@ -92,9 +92,7 @@ public class StorageService {
     public List<RedditPost> getSortedByScore() {
         return store.values().stream()
                 .filter(p -> !p.isDismissed())
-                .sorted(Comparator
-                        .comparingInt(RedditPost::getIntentScore).reversed()
-                        .thenComparingLong(RedditPost::getCreatedUtc).reversed())
+                .sorted(Comparator.comparingInt(RedditPost::getIntentScore).reversed())
                 .toList();
     }
 
